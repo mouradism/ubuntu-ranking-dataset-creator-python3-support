@@ -1,108 +1,123 @@
-# README -- Ubuntu Dialogue Corpus v2.0
 
-We describe the files for generating the Ubuntu Dialogue Corpus, and the dataset itself.
+# Fix Python 2 → Python 3 compatibility issues 
+# Improve code style and/or refactor
+# Update README or documentation
 
-## UPDATES FROM UBUNTU CORPUS v1.0:
+# Ubuntu Dialogue Corpus v2.0
 
-There are several updates and bug fixes that are present in v2.0. The updates are significant enough that results on the two datasets will not be equivalent, and should not be compared. However, models that do well on the first dataset should transfer to the second dataset (with perhaps a new hyperparameter search).
+This repository contains the files and scripts for generating the **Ubuntu Dialogue Corpus v2.0**, a large-scale multi-turn dialogue dataset designed for research on dialogue systems.
 
-- Separated the train/validation/test sets by time. The training set goes from the beginning (2004) to about April 27, 2012, the  validation set goes from April 27 to August 7, 2012, and the test set goes from August 7 to December 1, 2012. This more closely mimics real life implementation, where you are training a model on past data to predict future data.
-- Changed the sampling procedure for the context length in the validation and test sets, from an inverse distribution to a uniform distribution (between 2 and the max context size). This increases the average context length, which we consider desirable since we would like to model long-term dependencies.
-- Changed the tokenization and entity replacement procedure. After complaints stating v1 was too aggressive, we've decided to remove these. It is up to each person using the dataset to come up with their own tokenization/ entity replacement scheme. We plan to use the tokenization internally.
-- Added differentiation between the end of an utterance (`__eou__`) and end of turn (`__eot__`). In the original dataset, we concatenated all consecutive utterances by the same user in to one utterance, and put `__EOS__` at the end. Here, we also denote where the original utterances were (with `__eou__`). Also, the terminology should now be consistent between the training and test set (instead of both `__EOS__` and `</s>`).
-- Fixed a bug that caused the distribution of false responses in the test and validation sets to be different from the true responses. In particular, the number of words in the false responses was shorter on average than for the true responses, which could have been exploited by some models.
+---
 
-## UBUNTU CORPUS GENERATION FILES:
+## Updates from Ubuntu Corpus v1.0
 
-### generate.sh:
-#### DESCRIPTION:
-Script that calls `create_ubuntu_dataset.py`. This is the script you should run in order to download the dataset. The parameters passed to this script will be passed to `create_ubuntu_dataset.py`. Example usage: `./generate.sh -t -s -l`.
+Version 2.0 includes important updates and bug fixes compared to v1.0. These changes mean results on the two datasets are **not directly comparable**, but models trained on v1.0 should transfer reasonably well to v2.0 with some hyperparameter tuning:
 
-### create_ubuntu_dataset.py:
-#### DESCRIPTION:
-Script for generation of train, test and valid datasets from Ubuntu Corpus 1 on 1 dialogs.
-The script downloads 1on1 dialogs from internet and then it randomly samples all the datasets with positive and negative examples.
-Copyright IBM 2015
+- **Train/validation/test split by time:**  
+  Training data covers from 2004 to April 27, 2012; validation from April 27 to August 7, 2012; and test from August 7 to December 1, 2012. This simulates real-world scenarios by training on past data to predict future data.
 
-#### ARGUMENTS:
-- `--data_root`: directory where 1on1 dialogs will downloaded and extracted, the data will be downloaded from [cs.mcgill.ca/~jpineau/datasets/ubuntu-corpus-1.0/ubuntu_dialogs.tgz](http://cs.mcgill.ca/~jpineau/datasets/ubuntu-corpus-1.0/ubuntu_dialogs.tgz) (default = '.')
-- `--seed`: seed for random number generator (default = 1234)
-- `-o`, `--output`: output file for writing to csv (default = None)
-- `-t`, `--tokenize`: tokenize the output (`nltk.word_tokenize`)
-- `-s`, `--stem`: stem the output (`nltk.stem.SnowballStemmer`) - applied only when `-t` flag is present
-- `-l`, `--lemmatize`: lemmatize the output (`nltk.stem.WorldNetLemmatizer`) - applied only when `-t` flag is present
+- **Context length sampling changed:**  
+  Validation and test sets now sample context lengths uniformly (between 2 and max size) instead of an inverse distribution, increasing average context length to better model long-term dependencies.
 
-*Note:* if both `-s` and `-l` are present, the stemmer is applied before the lemmatizer.
+- **Tokenization and entity replacement removed:**  
+  Earlier aggressive tokenization and entity replacement were removed. Users may apply their preferred preprocessing.
 
-#### Subparsers:
-`train`: train set generator
-- `-p`: positive example probability, ie. the ratio of positive examples to total examples in the training set (default = 0.5)
-- `-e`, `--examples`: number of training examples to generate. Note that this will generate slightly fewer examples than desired, as there is a 'post-processing' step that filters  (default = 1000000)
+- **Explicit end-of-utterance (`__eou__`) and end-of-turn (`__eot__`) tokens:**  
+  Unlike v1, where consecutive utterances from the same user were concatenated, v2 marks utterance boundaries clearly, improving consistency.
 
-`valid`: validation set generator
-- `-n`: number of distractor examples for each context (default = 9)
+- **Bug fix in false response distributions:**  
+  The distribution of false responses now matches true responses more closely in length, preventing models from exploiting length differences.
 
-`test`: test set generator
-- `-n`: number of distractor examples for each context (default = 9)
+---
 
+## Corpus Generation Files
 
-### meta folder: trainfiles.csv, valfiles.csv, testfiles.csv:
-#### DESCRIPTION:
-Maps the original dialogue files to the training, validation, and test sets.
+### `generate.sh`
 
+Shell script that runs `create_ubuntu_dataset.py` with parameters to generate dataset splits.
 
-## UBUNTU CORPUS FILES (after generating):
-
-### train.csv:
-Contains the training set. It is separated into 3 columns: the context of the conversation, the candidate response or 'utterance', and a flag or 'label' (= 0 or 1) denoting whether the response is a 'true response' to the context (flag = 1), or a randomly drawn response from elsewhere in the dataset (flag = 0). This triples format is described in the paper. When generated with the default settings, train.csv is 463Mb, with 1,000,000 lines (ie. examples, which corresponds to 449,071 dialogues) and with a vocabulary size of ~~1,344,621~~. Note that, to generate the full dataset, you should use the `--examples` argument for the `create_ubuntu_dataset.py` file.
-
-### valid.csv:
-Contains the validation set. Each row represents a question. Separated into 11 columns: the context, the true response or 'ground truth utterance', and 9 false responses or 'distractors' that were randomly sampled from elsewhere in the dataset. Your model gets a question correct if it selects the ground truth utterance from amongst the 10 possible responses. When generated with the default settings, `valid.csv` is 27Mb, with 19,561 lines and a vocabulary size of 115,688.
-
-### test.csv:
-Contains the test set. Formatted in the same way as the validation set. When generated with the default settings, test.csv is 27Mb, with 18,921 lines and a vocabulary size of 115,623.
-
-## BASELINE RESULTS
-
-#### Dual Encoder LSTM model:
-```
-1 in 2:
-	recall@1: 0.868730970907
-1 in 10:
-	recall@1: 0.552213717862 
-	recall@2: 0.72099120433, 
-	recall@5: 0.924285351827 
+Example usage:  
+```bash
+./generate.sh -t -s -l
 ```
 
-#### Dual Encoder RNN model:
-```
-1 in 2:
-	recall@1: 0.776539210705,
-1 in 10:
-	recall@1: 0.379139142954, 
-	recall@2: 0.560689786585, 
-	recall@5: 0.836350355691,
-```
+### `create_ubuntu_dataset.py`
 
-#### TF-IDF model:
-```
-1 in 2:
-	recall@1:  0.749260042283
-1 in 10:
-	recall@1:  0.48810782241
-	recall@2:  0.587315010571
-	recall@5:  0.763054968288
-```
+Main Python script to generate training, validation, and test datasets from Ubuntu Dialogue Corpus v1.0 dialogs. It downloads raw 1-on-1 dialogs and samples positive and negative examples to create ranking datasets.
 
-## HYPERPARAMETERS USED
+**Key arguments:**
 
-Code for the model can be found here (might not be up to date with the new dataset): https://github.com/npow/ubottu
+| Argument       | Description                                          | Default |
+|----------------|------------------------------------------------------|---------|
+| --data_root    | Directory to download/extract 1-on-1 dialogs         | `.`     |
+| --seed        | Random seed for reproducibility                       | `1234`  |
+| -o, --output  | Output CSV file path                                  | None    |
+| -t, --tokenize| Tokenize output using `nltk.word_tokenize`            | False   |
+| -s, --stem    | Apply stemming with `SnowballStemmer` (only if tokenize enabled) | False |
+| -l, --lemmatize| Apply lemmatization with `WordNetLemmatizer` (only if tokenize enabled) | False |
 
-#### Dual Encoder LSTM model:
-```
+*Note: If both `-s` and `-l` are specified, stemming is applied before lemmatization.*
+
+---
+
+### Subcommands
+
+- **train**: Generate training data  
+  Arguments:  
+  - `-p` Positive example ratio (default 0.5)  
+  - `-e`, `--examples` Number of examples to generate (default 1,000,000)
+
+- **valid**: Generate validation data  
+  Arguments:  
+  - `-n` Number of distractors per context (default 9)
+
+- **test**: Generate test data  
+  Arguments:  
+  - `-n` Number of distractors per context (default 9)
+
+---
+
+## Meta folder files
+
+- `trainfiles.csv`, `valfiles.csv`, `testfiles.csv`:  
+  Map original dialogue files to train, validation, and test splits.
+
+---
+
+## Generated Corpus Files
+
+- **train.csv**:  
+  Training data with columns: context, candidate response, and label (1 for true response, 0 for randomly sampled false response).  
+  ~463 MB, 1 million examples.
+
+- **valid.csv**:  
+  Validation set with one context, one true response, and 9 distractors per row.  
+  ~27 MB, 19,561 rows.
+
+- **test.csv**:  
+  Same format as validation.  
+  ~27 MB, 18,921 rows.
+
+---
+
+## Baseline Results
+
+| Model            | Recall@1 (1 in 2) | Recall@1 (1 in 10) | Recall@2 (1 in 10) | Recall@5 (1 in 10) |
+|------------------|-------------------|--------------------|--------------------|--------------------|
+| Dual Encoder LSTM | 0.869             | 0.552              | 0.721              | 0.924              |
+| Dual Encoder RNN  | 0.777             | 0.379              | 0.561              | 0.836              |
+| TF-IDF           | 0.749             | 0.488              | 0.587              | 0.763              |
+
+---
+
+## Hyperparameters Used
+
+### Dual Encoder LSTM
+
+\`\`\`
 act_penalty=500
 batch_size=256
-conv_attn=False 
+conv_attn=False
 corr_penalty=0.0
 emb_penalty=0.001
 fine_tune_M=True
@@ -126,10 +141,11 @@ sort_by_len=False
 sqr_norm_lim=1
 use_pv=False
 xcov_penalty=0.0
-```
+\`\`\`
 
-#### Dual Encoder RNN model:
-```
+### Dual Encoder RNN
+
+\`\`\`
 act_penalty=500
 batch_size=512
 conv_attn=False
@@ -156,4 +172,50 @@ sort_by_len=False
 sqr_norm_lim=1
 use_pv=False
 xcov_penalty=0.0
-```
+\`\`\`
+
+---
+
+## Project Structure
+
+\`\`\`
+project_root/
+├── dialogs/
+│   ├── 1/
+│   │   ├── 1.tsv
+│   │   ├── 2.tsv
+│   │   └── ...
+│   ├── 2/
+│   │   ├── 1.tsv
+│   │   ├── 2.tsv
+│   │   └── ...
+│   ├── 3/
+│   │   └── ...
+│   └── 5/
+│       └── ...
+└── src/
+    └── meta/
+        ├── trainfiles.csv
+        ├── valfiles.csv
+        ├── testfiles.csv
+    ├── create_ubuntu_dataset.py
+    ├── download_punkt.py
+    ├── generate.sh
+    └── ...
+\`\`\`
+
+---
+
+## Credits
+
+This work builds upon the original Ubuntu Dialogue Corpus v1.0 and its updates by R. Kadlec et al. and other contributors. The baseline model hyperparameters were provided by the authors of the Dual Encoder models and related research.
+
+---
+
+## Usage
+
+To generate datasets, simply run:
+
+\`\`\`bash
+./src/generate.sh
+\`\`\`

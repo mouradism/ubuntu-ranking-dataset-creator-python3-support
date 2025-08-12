@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+venv/
 env/
 build/
 develop-eggs/
@@ -23,6 +24,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+__pycache__/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -62,7 +64,16 @@ target/
 .ipynb_checkpoints
 
 # Data files
+# Ignore meta folder
+src/meta/
 src/*.csv
 src/*.tgz
+*.csv
+*.tgz
 dialogs/
 .idea/
+
+# Ignore dataset CSVs
+test.csv
+train.csv
+valid.csv
