@@ -65,10 +65,8 @@ target/
 
 # Data files
 # Ignore meta folder
-src/meta/
 src/*.csv
 src/*.tgz
-*.csv
 *.tgz
 dialogs/
 .idea/
